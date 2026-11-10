@@ -1,188 +1,150 @@
-/* ملف الجافاسكريبت الوحيد - جميع التوابع هنا */
 
-// تحويل الأرقام العربية الهندية إلى أرقام إنكليزية
-function toEnglishDigits(str) {
-    var result = "";
-    for (var i = 0; i < str.length; i++) {
-        var code = str.charCodeAt(i);
-        if (code >= 1632 && code <= 1641) { result += String(code - 1632); }
-        else if (code >= 1776 && code <= 1785) { result += String(code - 1776); }
-        else { result += str.charAt(i); }
+function showError(id, msg) {
+    $("#err_" + id).text(msg);
+    if (msg == "") { $("#" + id).css("border-color", "#999999"); }
+    else { $("#" + id).css("border-color", "#C0392B"); }
+}
+function isLeap(y) {
+    return (y % 4 == 0 && y % 100 != 0) || y % 400 == 0;
+}
+function monthDays(y, m) {
+    if (m == 2) { if (isLeap(y)) { return 29; } return 28; }
+    if (m == 4 || m == 6 || m == 9 || m == 11) { return 30; }
+    return 31;
+}
+function dayNumber(text) {
+    if (text.search(/^\d{4}-\d{2}-\d{2}$/) != 0) { return -1; }
+    var ys = text.substring(0, 4);
+    var ms = text.substring(5, 7);
+    var ds = text.substring(8, 10);
+    var y = parseInt(ys, 10);
+    var m = parseInt(ms, 10);
+    var d = parseInt(ds, 10);
+    if (y < 1900 || m < 1 || m > 12 || d < 1 || d > monthDays(y, m)) { return -1; }
+    var n = 0;
+    for (var i = 1900; i < y; i++) {
+        if (isLeap(i)) { n = n + 366; } else { n = n + 365; }
     }
-    return result;
+    for (var k = 1; k < m; k++) { n = n + monthDays(y, k); }
+    return n + d;
 }
-
-function showError(fieldId, message) {
-    $("#err_" + fieldId).text(message);
-    if (message !== "") { $("#" + fieldId).css("border-color", "#c0392b"); }
-    else { $("#" + fieldId).css("border-color", "#999"); }
-}
-
-// الاسم: أحرف عربية فقط (اختياري)
-function validateName() {
-    var v = $.trim($("#fullname").val());
-    if (v === "") { showError("fullname", ""); return true; }
-    var re = /^[\u0621-\u064A]+(\s+[\u0621-\u064A]+)*$/;
-    if (!re.test(v)) { showError("fullname", "الاسم يجب أن يحوي أحرفاً عربية فقط."); return false; }
-    showError("fullname", ""); return true;
-}
-
-// الرقم الوطني: إلزامي، 11 خانة، أول خانتين بين 01 و14
-function validateNationalId() {
-    var v = toEnglishDigits($.trim($("#nationalid").val()));
-    if (v === "") { showError("nationalid", "الرقم الوطني إلزامي."); return false; }
-    if (!/^\d{11}$/.test(v)) { showError("nationalid", "الرقم الوطني يجب أن يتكون من 11 رقماً."); return false; }
-    var prov = parseInt(v.substring(0, 2), 10);
-    if (prov < 1 || prov > 14) { showError("nationalid", "أول خانتين يجب أن تكونا بين 01 و14 (المحافظة)."); return false; }
-    showError("nationalid", ""); return true;
-}
-
-// تحويل نص yyyy-mm-dd إلى تاريخ (UTC) أو null إذا كان غير صالح
-function parseDate(text) {
-    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(toEnglishDigits($.trim(text)));
-    if (m === null) { return null; }
-    var y = parseInt(m[1], 10), mo = parseInt(m[2], 10), d = parseInt(m[3], 10);
-    var dt = new Date(Date.UTC(y, mo - 1, d));
-    if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) { return null; }
-    return dt;
-}
-
-// تاريخا البداية والنهاية: إلزاميان، والنهاية لاحقة للبداية
-function validateDates() {
-    var ok = true;
-    var sTxt = $.trim($("#startdate").val());
-    var eTxt = $.trim($("#enddate").val());
-    var s = null, e = null;
-    if (sTxt === "") { showError("startdate", "تاريخ البداية إلزامي."); ok = false; }
-    else {
-        s = parseDate(sTxt);
-        if (s === null) { showError("startdate", "الصيغة المطلوبة yyyy-mm-dd وتاريخ صحيح."); ok = false; }
-        else { showError("startdate", ""); }
+function checkName() {
+    var v = $("#fullname").val();
+    if (v != "" && v.search(/^[\u0621-\u064A ]+$/) != 0) {
+        showError("fullname", "الاسم يجب أن يحوي أحرفاً عربية فقط.");
+        return false;
     }
-    if (eTxt === "") { showError("enddate", "تاريخ النهاية إلزامي."); ok = false; }
-    else {
-        e = parseDate(eTxt);
-        if (e === null) { showError("enddate", "الصيغة المطلوبة yyyy-mm-dd وتاريخ صحيح."); ok = false; }
-        else { showError("enddate", ""); }
+    showError("fullname", "");
+    return true;
+}
+function checkId() {
+    var v = $("#nationalid").val();
+    if (v == "") { showError("nationalid", "الرقم الوطني إلزامي."); return false; }
+    if (v.search(/^\d{11}$/) != 0) { showError("nationalid", "الرقم الوطني يجب أن يتكون من 11 رقماً."); return false; }
+    var p = parseInt(v.substring(0, 2), 10);
+    if (p < 1 || p > 14) { showError("nationalid", "أول خانتين يجب أن تكونا بين 01 و14 (المحافظة)."); return false; }
+    showError("nationalid", "");
+    return true;
+}
+function checkStart() {
+    var v = $("#startdate").val();
+    if (v == "") { showError("startdate", "تاريخ البداية إلزامي."); return false; }
+    if (dayNumber(v) == -1) { showError("startdate", "الصيغة المطلوبة yyyy-mm-dd وتاريخ صحيح."); return false; }
+    showError("startdate", "");
+    return true;
+}
+function checkEnd() {
+    var v = $("#enddate").val();
+    if (v == "") { showError("enddate", "تاريخ النهاية إلزامي."); return false; }
+    if (dayNumber(v) == -1) { showError("enddate", "الصيغة المطلوبة yyyy-mm-dd وتاريخ صحيح."); return false; }
+    var s = dayNumber($("#startdate").val());
+    if (s != -1 && dayNumber(v) <= s) { showError("enddate", "تاريخ النهاية يجب أن يكون لاحقاً لتاريخ البداية."); return false; }
+    showError("enddate", "");
+    return true;
+}
+function checkMobile() {
+    var v = $("#mobile").val();
+    if (v != "" && v.search(/^09[3-689]\d{7}$/) != 0) {
+        showError("mobile", "الرقم يجب أن يبدأ بـ 093/098/099 (Syriatel) أو 094/095/096 (MTN) ويتكون من 10 أرقام.");
+        return false;
     }
-    if (s !== null && e !== null && e.getTime() <= s.getTime()) {
-        showError("enddate", "تاريخ النهاية يجب أن يكون لاحقاً لتاريخ البداية."); ok = false;
+    showError("mobile", "");
+    return true;
+}
+function checkEmail() {
+    var v = $("#email").val();
+    if (v != "" && v.search(/^[^@ ]+@[^@ ]+\.[^@ .]+$/) != 0) {
+        showError("email", "صيغة البريد الإلكتروني غير صحيحة.");
+        return false;
     }
-    return ok;
+    showError("email", "");
+    return true;
 }
-
-// الموبايل: Syriatel (093,098,099) أو MTN (094,095,096) - اختياري
-function validateMobile() {
-    var v = toEnglishDigits($.trim($("#mobile").val()));
-    if (v === "") { showError("mobile", ""); return true; }
-    var re = /^09(3|4|5|6|8|9)\d{7}$/;
-    if (!re.test(v)) { showError("mobile", "الرقم يجب أن يبدأ بـ 093/098/099 (Syriatel) أو 094/095/096 (MTN) ويتكون من 10 أرقام."); return false; }
-    showError("mobile", ""); return true;
-}
-
-// البريد الإلكتروني (اختياري)
-function validateEmail() {
-    var v = $.trim($("#email").val());
-    if (v === "") { showError("email", ""); return true; }
-    var re = /^[A-Za-z0-9._%+\-]+@[A-Za-z0-9\-]+(\.[A-Za-z0-9\-]+)*\.[A-Za-z]{2,}$/;
-    if (!re.test(v)) { showError("email", "صيغة البريد الإلكتروني غير صحيحة."); return false; }
-    showError("email", ""); return true;
-}
-
-// جمع السيارات المختارة من الجدول
-function getSelectedCars() {
-    var cars = [];
-    $("input.pick:checked").each(function () {
-        var row = $(this).closest("tr");
-        cars.push({
-            code: row.find("td.code").text(),
-            model: row.find("td.model").text(),
-            price: parseInt(row.find("span.pricenum").text(), 10)
-        });
-    });
-    return cars;
-}
-
-// حساب النتيجة وعرضها
 function showResult() {
-    var cars = getSelectedCars();
-    var s = parseDate($("#startdate").val());
-    var e = parseDate($("#enddate").val());
-    var days = Math.round((e.getTime() - s.getTime()) / 86400000);
+    var picked = $("input.pick:checked");
+    var days = dayNumber($("#enddate").val()) - dayNumber($("#startdate").val());
     var total = 0;
-    var html = "<h2>ملخص الحجز</h2>";
-    var name = $.trim($("#fullname").val());
-    if (name !== "") { html += "<p>مقدم الطلب: " + name + "</p>"; }
-    html += "<table><tr><th>السيارة</th><th>الأيام</th><th>المبلغ</th></tr>";
-    for (var i = 0; i < cars.length; i++) {
-        var sub = cars[i].price * days;
-        total += sub;
-        html += "<tr><td>" + cars[i].model + " (" + cars[i].code + ")</td><td>" + days + "</td><td>" + sub + " ل.س</td></tr>";
+    var msg = "ملخص الحجز\n";
+    if ($("#fullname").val() != "") { msg = msg + "مقدم الطلب: " + $("#fullname").val() + "\n"; }
+    for (var i = 0; i < picked.length; i++) {
+        var code = picked[i].value;
+        var price = parseInt($("#p_" + code).text(), 10);
+        var sub = price * days;
+        total = total + sub;
+        msg = msg + $("#m_" + code).text() + " (" + code + "): " + days + " يوم = " + sub + " ل.س\n";
     }
-    html += "</table>";
     var discount = 0;
-    if (days > 7) { discount = total * 0.10; }
-    var finalAmount = total - discount;
-    html += "<p>عدد أيام التأجير: <b>" + days + "</b></p>";
-    html += "<p>المجموع قبل الخصم: <b>" + total + " ل.س</b></p>";
-    if (discount > 0) { html += "<p>الخصم (10% لتجاوز 7 أيام): <b>" + discount + " ل.س</b></p>"; }
-    else { html += "<p>الخصم: لا يوجد (المدة 7 أيام أو أقل)</p>"; }
-    html += "<p class='total'>المبلغ النهائي: " + finalAmount + " ل.س</p>";
-    html += "<button type='button' id='closeresult'>إغلاق</button>";
-    $("#resultbox").html(html);
-    $("#overlay").fadeIn(300);
+    if (days > 7) { discount = total * 0.1; }
+    msg = msg + "عدد أيام التأجير: " + days + "\n";
+    msg = msg + "المجموع قبل الخصم: " + total + " ل.س\n";
+    msg = msg + "الخصم (10% عند تجاوز 7 أيام): " + discount + " ل.س\n";
+    msg = msg + "المبلغ النهائي: " + (total - discount) + " ل.س";
+    alert(msg);
 }
 
 $(document).ready(function () {
-    // ظهور تدريجي للمحتوى في كل الصفحات
-    $("#content").hide().fadeIn(600);
+    $("#bookingbox").css("display", "none");
+    $("tr.details").css("display", "none");
 
-    // زر الخروج
     $("#exitbtn").click(function () {
         if (confirm("هل تريد الخروج من الموقع؟")) {
             window.close();
             window.location.href = "about:blank";
         }
+        return false;
     });
 
-    // إظهار/إخفاء تفاصيل السيارة (jQuery)
     $("input.showdetails").click(function () {
-        var box = $("#details_" + $(this).val());
-        var row = box.closest("tr");
-        if ($(this).is(":checked")) { row.show(); box.slideDown(300); }
-        else { box.slideUp(300, function () { row.hide(); }); }
+        var row = $("#d_" + $(this).val());
+        if (row.css("display") == "none") { row.css("display", "table-row"); }
+        else { row.css("display", "none"); }
     });
 
-    // زر متابعة
+    $("input.pick").click(function () {
+        $("#r_" + $(this).val()).toggleClass("chosen");
+    });
+
     $("#continuebtn").click(function () {
-        if (getSelectedCars().length === 0) {
+        if ($("input.pick:checked").length == 0) {
             $("#carserror").text("الرجاء اختيار سيارة واحدة على الأقل.");
-            return;
+        } else {
+            $("#carserror").text("");
+            $("#bookingbox").css("display", "block");
         }
-        $("#carserror").text("");
-        $("#bookingbox").slideDown(400);
-        $("html, body").animate({ scrollTop: $("#bookingbox").offset().top }, 500);
     });
 
-    // التحقق اللحظي عند مغادرة الحقل
-    $("#fullname").blur(validateName);
-    $("#nationalid").blur(validateNationalId);
-    $("#startdate").blur(validateDates);
-    $("#enddate").blur(validateDates);
-    $("#mobile").blur(validateMobile);
-    $("#email").blur(validateEmail);
-
-    // إرسال النموذج
-    $("#bookingform").submit(function (ev) {
-        ev.preventDefault();
-        var r1 = validateName();
-        var r2 = validateNationalId();
-        var r3 = validateDates();
-        var r4 = validateMobile();
-        var r5 = validateEmail();
-        if (getSelectedCars().length === 0) { $("#carserror").text("الرجاء اختيار سيارة واحدة على الأقل."); return; }
-        if (r1 && r2 && r3 && r4 && r5) { showResult(); }
+    $("#bookingform").submit(function () {
+        var a = checkName();
+        var b = checkId();
+        var c = checkStart();
+        var d = checkEnd();
+        var e = checkMobile();
+        var f = checkEmail();
+        if ($("input.pick:checked").length == 0) {
+            $("#carserror").text("الرجاء اختيار سيارة واحدة على الأقل.");
+            return false;
+        }
+        if (a && b && c && d && e && f) { showResult(); }
+        return false;
     });
-
-    $("#resultbox").on("click", "#closeresult", function () { $("#overlay").fadeOut(200); });
 });
